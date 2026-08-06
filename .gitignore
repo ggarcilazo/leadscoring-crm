@@ -1,0 +1,30 @@
+# Entorno / secretos
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+venv311/
+
+# Logs
+*.log
+
+# Node / n8n
+node_modules/
+.n8n/
+n8n_data/
+
+# Bases de datos locales
+*.sqlite3
+*.db
+
+# IDE / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
