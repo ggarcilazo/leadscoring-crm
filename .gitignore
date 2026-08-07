@@ -23,6 +23,14 @@ n8n_data/
 *.sqlite3
 *.db
 
+# Streamlit
+.streamlit/secrets.toml
+
+# Docker volumes / data locales
+n8n_data/
+odoo_web/
+odoo_db/
+
 # IDE / SO
 .vscode/
 .idea/
