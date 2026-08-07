@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sistema de Calificación de Leads — Demo en vivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1c1f1d;
+    --panel: #24282533;
+    --panel-solid: #24282a;
+    --panel-raised: #2b302c;
+    --border: #3a3f3b;
+    --text: #ededE6;
+    --text-dim: #9ca39b;
+    --text-faint: #6b716a;
+    --accent-alta: #ff6b35;
+    --accent-media: #e8b04b;
+    --accent-baja: #4fd1a5;
+    --accent-neutral: #6c9bd1;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% 0%, #262b27 0%, transparent 45%),
+      var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+
+  .noise{
+    position:fixed; inset:0; pointer-events:none; opacity:.035; z-index:0;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .wrap{ position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:48px 24px 96px; }
+
+  /* ---------- Header ---------- */
+  header{ margin-bottom:56px; }
+  .eyebrow{
+    display:flex; align-items:center; gap:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--text-dim); margin-bottom:18px;
+  }
+  .eyebrow .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent-baja); box-shadow:0 0 0 3px #4fd1a51f; animation:pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+  h1{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:800;
+    font-size:clamp(38px, 6vw, 74px);
+    line-height:.92;
+    letter-spacing:-.01em;
+    margin:0 0 18px;
+    text-transform:uppercase;
+  }
+  h1 span{ color:var(--text-dim); }
+
+  .lede{ max-width:620px; color:var(--text-dim); font-size:16px; line-height:1.6; }
+  .lede strong{ color:var(--text); font-weight:600; }
+
+  /* ---------- Layout principal ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:1px;
+    background:var(--border);
+    border:1px solid var(--border);
+  }
+  @media (max-width:880px){ .grid{ grid-template-columns:1fr; } }
+
+  .panel{ background:var(--panel-solid); padding:36px; }
+
+  .panel-label{
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--text-faint);
+    padding-bottom:18px; margin-bottom:24px; border-bottom:1px solid var(--border);
+  }
+  .panel-label .tag{ color:var(--accent-neutral); }
+
+  /* ---------- Formulario ---------- */
+  .field{ margin-bottom:20px; }
+  .field label{
+    display:block; font-size:12px; letter-spacing:.04em; color:var(--text-dim);
+    margin-bottom:8px; font-weight:500;
+  }
+  .field .hint{ color:var(--text-faint); font-weight:400; font-size:11px; margin-left:6px; }
+
+  input, textarea{
+    width:100%; background:var(--panel-raised); border:1px solid var(--border);
+    color:var(--text); font-family:'IBM Plex Sans', sans-serif; font-size:14.5px;
+    padding:12px 14px; border-radius:2px; outline:none;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  input::placeholder, textarea::placeholder{ color:var(--text-faint); }
+  input:focus, textarea:focus{ border-color:var(--accent-neutral); background:#2f342f; }
+  textarea{ resize:vertical; min-height:110px; line-height:1.55; }
+
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:520px){ .row2{ grid-template-columns:1fr; } }
+
+  /* honeypot oculto */
+  .hp{ position:absolute; left:-9999px; opacity:0; height:0; overflow:hidden; }
+
+  button.submit{
+    width:100%; margin-top:8px;
+    background:var(--text); color:var(--bg);
+    border:none; padding:15px 18px; border-radius:2px;
+    font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:13px;
+    letter-spacing:.08em; text-transform:uppercase; cursor:pointer;
+    transition:transform .1s ease, background .15s ease;
+  }
+  button.submit:hover:not(:disabled){ background:#fff; }
+  button.submit:active:not(:disabled){ transform:scale(.99); }
+  button.submit:disabled{ background:var(--panel-raised); color:var(--text-faint); cursor:not-allowed; }
+
+  .quota-note{
+    margin-top:12px; font-family:'IBM Plex Mono', monospace; font-size:11px;
+    color:var(--text-faint); display:flex; justify-content:space-between;
+  }
+  .quota-note span.left{ color:var(--accent-baja); }
+  .quota-note span.left.warn{ color:var(--accent-media); }
+  .quota-note span.left.blocked{ color:var(--accent-alta); }
+
+  /* ---------- Consola de resultado ---------- */
+  .console{
+    background:#161815; border:1px solid var(--border);
+    border-radius:2px; padding:20px; font-family:'IBM Plex Mono', monospace;
+    font-size:13px; min-height:340px; display:flex; flex-direction:column;
+    position:relative; overflow:hidden;
+  }
+  .console-top{
+    display:flex; justify-content:space-between; align-items:center;
+    padding-bottom:14px; margin-bottom:14px; border-bottom:1px dashed var(--border);
+    color:var(--text-faint); font-size:11px; letter-spacing:.08em;
+  }
+  .console-body{ flex:1; display:flex; flex-direction:column; }
+
+  .idle-state{
+    margin:auto; text-align:center; color:var(--text-faint); font-size:12.5px; line-height:1.7;
+  }
+  .idle-state .glyph{ font-size:28px; margin-bottom:12px; opacity:.5; }
+
+  .log-line{ color:var(--text-dim); margin-bottom:6px; opacity:0; animation:fadeIn .3s ease forwards; }
+  .log-line .ok{ color:var(--accent-baja); }
+  @keyframes fadeIn{ to{ opacity:1; } }
+
+  .stamp{
+    margin-top:18px; padding-top:18px; border-top:1px dashed var(--border);
+    opacity:0; transform:translateY(6px);
+    animation:stampIn .35s ease forwards;
+  }
+  @keyframes stampIn{ to{ opacity:1; transform:translateY(0); } }
+
+  .stamp-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .stamp-field{ color:var(--text-faint); font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
+  .stamp-value{ font-weight:600; }
+
+  .badge{
+    display:inline-block; padding:5px 12px; border-radius:2px;
+    font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+    border:1.5px solid currentColor; transform:rotate(-2deg);
+  }
+  .badge.alta{ color:var(--accent-alta); }
+  .badge.media{ color:var(--accent-media); }
+  .badge.baja{ color:var(--accent-baja); }
+
+  .resumen-box{
+    margin-top:16px; padding:14px; background:var(--panel-raised);
+    border-left:2px solid var(--accent-neutral); color:var(--text-dim);
+    font-family:'IBM Plex Sans', sans-serif; font-size:13px; line-height:1.55;
+  }
+
+  .error-box{
+    margin-top:16px; padding:14px; background:#2a1f1a;
+    border-left:2px solid var(--accent-alta); color:#ffb08f;
+    font-family:'IBM Plex Sans', sans-serif; font-size:13px; line-height:1.55;
+  }
+
+  .spinner{
+    width:14px; height:14px; border-radius:50%;
+    border:2px solid var(--border); border-top-color:var(--accent-neutral);
+    animation:spin .7s linear infinite; display:inline-block; margin-right:8px; vertical-align:-2px;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* ---------- Guía inferior ---------- */
+  .guide{ margin-top:64px; }
+  .guide h2{
+    font-family:'Big Shoulders Display', sans-serif; font-weight:800;
+    font-size:clamp(24px, 3vw, 32px); text-transform:uppercase; margin:0 0 24px;
+  }
+  .guide-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(230px,1fr)); gap:1px; background:var(--border); border:1px solid var(--border); }
+  .guide-item{ background:var(--panel-solid); padding:22px 24px; }
+  .guide-item .n{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--accent-neutral); margin-bottom:8px;
+  }
+  .guide-item p{ margin:0; color:var(--text-dim); font-size:13.5px; line-height:1.6; }
+  .guide-item code{ color:var(--text); background:var(--panel-raised); padding:1px 5px; border-radius:2px; font-size:12.5px; }
+
+  footer{
+    margin-top:56px; padding-top:24px; border-top:1px solid var(--border);
+    color:var(--text-faint); font-family:'IBM Plex Mono', monospace; font-size:11px;
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow"><span class="dot"></span> SISTEMA EN VIVO — LEAD INTAKE + IA</div>
+    <h1>Ingesta y calificación<br><span>automática de leads</span></h1>
+    <p class="lede">Completa el formulario como si fueras un prospecto B2B real. La <strong>IA clasifica el mensaje</strong> (presupuesto, urgencia, sector) y el sistema lo procesa igual que lo haría al crear la oportunidad en el CRM.</p>
+  </header>
+
+  <div class="grid">
+
+    <!-- FORMULARIO -->
+    <div class="panel">
+      <div class="panel-label">Orden de ingreso <span class="tag">01 / FORMULARIO</span></div>
+
+      <form id="leadForm">
+        <div class="field">
+          <label for="nombre">Nombre de contacto</label>
+          <input type="text" id="nombre" name="nombre" placeholder="Ej. Carlos Mendoza" required />
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="empresa">Empresa</label>
+            <input type="text" id="empresa" name="empresa" placeholder="Ej. Constructora Andina SAC" required />
+          </div>
+          <div class="field">
+            <label for="telefono">Teléfono</label>
+            <input type="tel" id="telefono" name="telefono" placeholder="+51 987 654 321" required />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="email">Correo corporativo</label>
+          <input type="email" id="email" name="email" placeholder="nombre@empresa.com" required />
+        </div>
+
+        <div class="field">
+          <label for="mensaje">Mensaje <span class="hint">— sé específico, la IA clasifica en base a esto</span></label>
+          <textarea id="mensaje" name="mensaje" placeholder="Ej. Necesitamos con urgencia una cotización para 500 metros de cableado industrial, el proyecto arranca en dos semanas y el presupuesto es alto." required></textarea>
+        </div>
+
+        <!-- honeypot anti-bot: invisible para personas, los bots suelen rellenarlo -->
+        <div class="hp" aria-hidden="true">
+          <label for="website">No completar</label>
+          <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" />
+        </div>
+
+        <button type="submit" class="submit" id="submitBtn">Enviar y clasificar con IA</button>
+        <div class="quota-note">
+          <span id="quotaText" class="left">5 de 5 intentos disponibles en esta sesión</span>
+          <span id="timerText"></span>
+        </div>
+      </form>
+    </div>
+
+    <!-- CONSOLA -->
+    <div class="panel">
+      <div class="panel-label">Resultado de clasificación <span class="tag">02 / CONSOLA IA</span></div>
+      <div class="console">
+        <div class="console-top">
+          <span>webhook · n8n · llama-3.3-70b</span>
+          <span id="statusDot">● en espera</span>
+        </div>
+        <div class="console-body" id="consoleBody">
+          <div class="idle-state">
+            <div class="glyph">◌</div>
+            Envía el formulario para ver la clasificación en tiempo real
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- GUÍA -->
+  <section class="guide">
+    <h2>Cómo funciona esta demo</h2>
+    <div class="guide-grid">
+      <div class="guide-item">
+        <div class="n">01</div>
+        <p>El formulario envía un <code>POST</code> directo al webhook de producción del flujo de n8n — el mismo que usaría un formulario real de la web.</p>
+      </div>
+      <div class="guide-item">
+        <div class="n">02</div>
+        <p>n8n manda el mensaje a un modelo de IA (Llama 3.3 vía Groq), que devuelve <code>presupuesto</code>, <code>urgencia</code>, <code>sector</code> y un <code>resumen ejecutivo</code> en JSON estructurado.</p>
+      </div>
+      <div class="guide-item">
+        <div class="n">03</div>
+        <p>Ese resultado es el mismo que se usaría para crear la oportunidad en el CRM (Odoo) con etiquetas automáticas y prioridad asignada.</p>
+      </div>
+      <div class="guide-item">
+        <div class="n">04</div>
+        <p>Por seguridad, esta demo pública limita los envíos por sesión. Es solo para mostrar el flujo — no reemplaza el formulario de producción real.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>leadscoring-crm · demo pública</span>
+    <span id="clockFooter"></span>
+  </footer>
+
+</div>
+
+<script>
+  // ======================================================================
+  // CONFIGURACIÓN — lo único que hay que tocar para conectar tu n8n real
+  // ======================================================================
+  const WEBHOOK_URL = "https://consigueventas.duckdns.org/webhook/leadscoring-demo-8f2a";
+  const MAX_INTENTOS = 5;                 // intentos permitidos por sesión de navegador
+  const VENTANA_MS = 60 * 60 * 1000;      // 1 hora — pasado esto, se resetea el contador
+
+  // ======================================================================
+  // Control de intentos (protección básica del lado del cliente).
+  // Esto NO es seguridad real — cualquiera puede borrar localStorage y
+  // seguir enviando. Es solo para que la demo no se sature por accidente.
+  // La protección real va en el servidor (nginx + n8n) — ver guía del chat.
+  // ======================================================================
+  const STORAGE_KEY = "leadscoring_demo_quota";
+
+  function leerCuota(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return { count:0, start:Date.now() };
+      const data = JSON.parse(raw);
+      if(Date.now() - data.start > VENTANA_MS){
+        return { count:0, start:Date.now() };
+      }
+      return data;
+    }catch(e){
+      return { count:0, start:Date.now() };
+    }
+  }
+
+  function guardarCuota(data){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
+  }
+
+  function actualizarUI(){
+    const cuota = leerCuota();
+    const restantes = Math.max(0, MAX_INTENTOS - cuota.count);
+    const quotaText = document.getElementById('quotaText');
+    const submitBtn = document.getElementById('submitBtn');
+
+    quotaText.textContent = `${restantes} de ${MAX_INTENTOS} intentos disponibles en esta sesión`;
+    quotaText.className = 'left' + (restantes === 0 ? ' blocked' : restantes <= 2 ? ' warn' : '');
+
+    if(restantes === 0){
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Límite de pruebas alcanzado';
+      const minutosRestantes = Math.ceil((VENTANA_MS - (Date.now() - cuota.start)) / 60000);
+      document.getElementById('timerText').textContent = `reintenta en ~${minutosRestantes} min`;
+    } else {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Enviar y clasificar con IA';
+      document.getElementById('timerText').textContent = '';
+    }
+    return { cuota, restantes };
+  }
+
+  function tick(){
+    const clock = document.getElementById('clockFooter');
+    clock.textContent = new Date().toLocaleString('es-PE', { dateStyle:'short', timeStyle:'medium' });
+  }
+  setInterval(tick, 1000); tick();
+  actualizarUI();
+
+  // ======================================================================
+  // Envío del formulario
+  // ======================================================================
+  const form = document.getElementById('leadForm');
+  const consoleBody = document.getElementById('consoleBody');
+  const statusDot = document.getElementById('statusDot');
+
+  function log(html){
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.innerHTML = html;
+    consoleBody.appendChild(line);
+  }
+
+  function badgeClass(urgencia){
+    if(!urgencia) return 'baja';
+    const u = urgencia.toLowerCase();
+    if(u.includes('alta')) return 'alta';
+    if(u.includes('media')) return 'media';
+    return 'baja';
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // honeypot: si este campo invisible tiene texto, es un bot -> se ignora
+    if(document.getElementById('website').value){
+      return;
+    }
+
+    const { restantes } = actualizarUI();
+    if(restantes <= 0) return;
+
+    const payload = {
+      nombre: document.getElementById('nombre').value.trim(),
+      empresa: document.getElementById('empresa').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      telefono: document.getElementById('telefono').value.trim(),
+      mensaje: document.getElementById('mensaje').value.trim(),
+    };
+
+    // consumir un intento
+    const cuota = leerCuota();
+    cuota.count += 1;
+    guardarCuota(cuota);
+    actualizarUI();
+
+    document.getElementById('submitBtn').disabled = true;
+    consoleBody.innerHTML = '';
+    statusDot.textContent = '● procesando';
+    statusDot.style.color = 'var(--accent-media)';
+
+    log(`<span class="spinner"></span> enviando orden de ingreso...`);
+
+    try{
+      const res = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if(!res.ok){
+        throw new Error(`El servidor respondió ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      log(`<span class="ok">✓</span> orden recibida por n8n`);
+      log(`<span class="ok">✓</span> clasificado por el modelo de IA`);
+
+      const cls = badgeClass(data.urgencia);
+      const stamp = document.createElement('div');
+      stamp.className = 'stamp';
+      stamp.innerHTML = `
+        <div class="stamp-row">
+          <span class="stamp-field">Urgencia</span>
+          <span class="badge ${cls}">${data.urgencia || 'sin datos'}</span>
+        </div>
+        <div class="stamp-row">
+          <span class="stamp-field">Presupuesto estimado</span>
+          <span class="stamp-value">${data.presupuesto_estimado || '—'}</span>
+        </div>
+        <div class="stamp-row">
+          <span class="stamp-field">Sector</span>
+          <span class="stamp-value">${data.sector || '—'}</span>
+        </div>
+        <div class="resumen-box">${data.resumen_ejecutivo || 'La IA no devolvió un resumen para este mensaje.'}</div>
+      `;
+      consoleBody.appendChild(stamp);
+
+      statusDot.textContent = '● completado';
+      statusDot.style.color = 'var(--accent-baja)';
+
+    }catch(err){
+      log(`<span style="color:var(--accent-alta)">✕</span> no se pudo completar la clasificación`);
+      const box = document.createElement('div');
+      box.className = 'error-box';
+      box.textContent = 'No se pudo conectar con el flujo de n8n. Verifica que el workflow esté activo (Active) y que el webhook esté publicado. Detalle: ' + err.message;
+      consoleBody.appendChild(box);
+
+      statusDot.textContent = '● error';
+      statusDot.style.color = 'var(--accent-alta)';
+    }
+
+    const check = actualizarUI();
+    document.getElementById('submitBtn').disabled = check.restantes <= 0;
+  });
+</script>
+
+</body>
+</html>
