@@ -53,7 +53,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.first().json.choices[0].message.content;\nconst clasificacion = JSON.parse(raw);\nconst original = $('Webhook - Lead Intake').first().json.body;\n\nreturn [{\n  json: {\n    ...original,\n    ...clasificacion\n  }\n}];"
+        "jsCode": "const raw = $input.first().json.choices[0].message.content;\nconst clasificacion = JSON.parse(raw);\nconst original = $('Webhook - Lead Intake').first().json.body;\n\nreturn [{\n  json: {\n    ...original,\n    ...clasificacion,\n    presupuesto: clasificacion.presupuesto_estimado\n  }\n}];"
       },
       "id": "x",
       "name": "Code - Normalizar",
@@ -78,6 +78,24 @@
       ],
       "id": "e68f29d7-cccb-4ebb-b94a-dc8d2d7881d2",
       "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/leads",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "backend-http-request-01",
+      "name": "HTTP Request - Enviar a Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        160
+      ]
     }
   ],
   "pinData": {},
@@ -93,22 +111,16 @@
         ]
       ]
     },
-    "HTTP Request - Gemini": {
-      "main": [
-        [
-          {
-            "node": "Code - Normalizar",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Code - Normalizar": {
       "main": [
         [
           {
             "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request - Enviar a Backend",
             "type": "main",
             "index": 0
           }
