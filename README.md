@@ -1,85 +1,103 @@
 # Lead Scoring CRM — Automatización de Leads con IA
 
-Sistema que recibe leads desde un flujo de automatización (n8n), los clasifica
-con IA (OpenAI/Gemini), limpia y valida los datos, y crea oportunidades
-automáticamente en **Odoo CRM** con etiquetas de urgencia, sector y presupuesto.
+Sistema automatizado de ingesta y calificación de leads B2B con IA,
+integrado a un CRM (Odoo). Un formulario de contacto se clasifica
+automáticamente por presupuesto, urgencia y sector, y crea la oportunidad
+directamente en el CRM con etiquetas y prioridad asignadas por IA.
 
-> Proyecto de equipo. Este repositorio contiene la parte de **backend
-> (Rol 2)**. El flujo n8n y la clasificación con IA corresponden al Rol 1.
+**Demo en vivo:** `docs/index.html` — desplegado en GitHub Pages, permite
+probar el flujo completo desde el navegador sin necesidad de Postman/curl.
+
+---
 
 ## Arquitectura
 
 ```
-n8n (Rol 1)  ──POST /leads──▶  Backend FastAPI  ──XML-RPC──▶  Odoo 17 CRM
-     │                              │
-     │                       [cleaning.py]          [PostgreSQL]
-     └── IA clasifica ──────▶  valida y limpia
+┌─────────────────┐      ┌──────────────┐      ┌─────────────────┐
+│  Formulario web   │      │     n8n        │      │   Groq API        │
+│  (docs/index.html)│─POST→│  (webhook)     │─POST→│  Llama 3.3 70B     │
+└─────────────────┘      │  self-hosted   │      │  (clasificación)  │
+                          │  Oracle Cloud  │←──────┘
+                          └───────┬────────┘
+                                  │ POST (JSON clasificado)
+                                  ▼
+                          ┌──────────────┐      ┌─────────────────┐
+                          │  Backend       │─────→│   Odoo CRM         │
+                          │  Python/FastAPI│      │  self-hosted       │
+                          │  (limpieza)    │      │  Oracle Cloud      │
+                          └──────────────┘      └─────────────────┘
 ```
 
-1. El flujo n8n recibe el lead y la IA lo clasifica (sector, urgencia, presupuesto).
-2. n8n envía el JSON a `POST /leads`.
-3. `cleaning.py` valida email, normaliza teléfono (E.164) y elimina HTML.
-4. `odoo_client.py` crea la oportunidad en `crm.lead` con sus etiquetas.
-5. Si la urgencia es `alta`, agenda una actividad de seguimiento automática.
+1. El formulario envía los datos del lead a un **Webhook de n8n**.
+2. n8n manda el mensaje a **Groq (Llama 3.3)**, que devuelve una
+   clasificación estructurada en JSON (presupuesto, urgencia, sector,
+   resumen ejecutivo).
+3. n8n reenvía el lead + clasificación a un **backend en Python (FastAPI)**,
+   que limpia/valida los datos (teléfono, email, texto).
+4. El backend crea la oportunidad en **Odoo CRM** vía XML-RPC, con
+   etiquetas automáticas y una alerta interna si la urgencia es alta.
 
-## Estructura del repo
+## Stack
+
+| Componente | Tecnología | Costo |
+|---|---|---|
+| Automatización | n8n (self-hosted, Docker) | $0 |
+| Clasificación IA | Groq API (Llama 3.3 70B) | $0 (free tier, sin tarjeta) |
+| Backend | Python + FastAPI | $0 |
+| CRM | Odoo Community Edition (self-hosted, Docker) | $0 |
+| Infraestructura | Oracle Cloud Always Free | $0 |
+| Demo pública | HTML/CSS/JS estático en GitHub Pages | $0 |
+
+## Estructura del repositorio
 
 ```
-proyecto 3/
+leadscoring-crm/
+├── n8n-workflows/
+│   ├── lead-intake.json     # Flujo exportado de n8n
+│   └── prompt-schema.md      # Prompt y schema de clasificación documentados
 ├── backend/
-│   ├── main.py           # API FastAPI (POST /leads, GET /health)
-│   ├── cleaning.py       # Validación y limpieza de datos
-│   ├── odoo_client.py    # Cliente XML-RPC para Odoo CRM
-│   ├── requirements.txt
-│   └── .env.example
-├── docker-compose.yml    # Odoo 17 + PostgreSQL (ver manual)
+│   ├── main.py                # Endpoint FastAPI que recibe el lead clasificado
+│   ├── cleaning.py            # Validación y limpieza de datos
+│   ├── odoo_client.py         # Integración con Odoo vía XML-RPC
+│   └── requirements.txt
+├── docs/
+│   ├── index.html             # Demo interactiva (GitHub Pages)
+│   └── ejemplos-io.md         # Casos reales de input/output probados
+├── docker-compose.yml
+├── .env.example
 ├── .gitignore
 └── README.md
 ```
 
-## Levantar en local
+## Instalación local
 
-### 1. Odoo 17 + PostgreSQL (Docker)
+Requisitos: Docker y Docker Compose.
 
 ```bash
+git clone <url-del-repo>
+cd leadscoring-crm
+cp .env.example .env   # completa con tus propias credenciales
 docker compose up -d
 ```
 
-Abrir `http://localhost:8069`, crear la base de datos, instalar el módulo
-**CRM** y generar una clave API en *Ajustes → Usuarios → tu usuario →
-Seguridad de la cuenta → Nuevas claves API*.
-
-### 2. Backend
-
-```bash
-cd backend
-python -m venv .venv
-# Windows: .venv\Scripts\activate   |   Linux/macOS: source .venv/bin/activate
-pip install -r requirements.txt
-copy .env.example .env        # Windows
-cp .env.example .env          # Linux/macOS
-# editar .env con URL, usuario y clave API reales
-uvicorn main:app --reload
-```
-
-### 3. Probar
-
-```bash
-curl -X POST http://localhost:8000/leads -H "Content-Type: application/json" -d "{\"empresa\":\"ACME SA\",\"nombre\":\"Juan\",\"email\":\"juan@acme.com\",\"telefono\":\"987654321\",\"sector\":\"Construccion\",\"urgencia\":\"alta\",\"resumen_ejecutivo\":\"Cliente interesado en CRM\"}"
-```
-
-Respuesta esperada: `{"status": "ok", "odoo_id": <id>}`
+Esto levanta n8n (`:5678`) y Odoo (`:8069`) localmente. Importa el flujo
+de `n8n-workflows/lead-intake.json` desde la UI de n8n, y configura tu
+propia credencial de Groq (no se incluye ninguna key en el repo).
 
 ## Seguridad
 
-- **Nunca** se suben `.env` al repositorio (está en `.gitignore`).
-- Usar `.env.example` como plantilla y reemplazar las credenciales reales.
-- En producción, inyectar las variables como variables de entorno del sistema,
-  no como archivo.
-- Antes de cada push: `git diff --staged` para verificar que no se coló ninguna clave.
+- Ninguna credencial vive en el código: todo pasa por variables de entorno
+  (`.env`, nunca versionado — ver `.gitignore`).
+- El webhook de producción incluye un path no adivinable y un honeypot
+  anti-bot en el formulario de demo.
+- La demo pública (`docs/index.html`) limita los envíos por sesión de
+  navegador como medida básica anti-saturación; la protección real de
+  tasa de envíos vive en el servidor (nginx + validaciones en n8n).
+- Cada componente corre en su propia credencial/API key, sin compartir
+  secretos entre servicios.
 
-## Notas
+## Autoría
 
-- Odoo **Community** (self-hosted) — licencia de Odoo Community (LGPL).
-- Requisitos: Python 3.11+, Docker, Docker Compose.
-- Las credenciales de ejemplo en `.env.example` deben reemplazarse antes de usar.
+Proyecto de portafolio desarrollado en equipo:
+- **Automatización & IA** (n8n, integración con Groq/Llama): [Giovanni Joaquin Garcilazo Lopez]
+- **Backend & CRM** (Python, Odoo, seguridad del repo): [Hector Jose Caballero Babilonia]
