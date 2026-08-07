@@ -5,7 +5,7 @@ integrado a un CRM (Odoo). Un formulario de contacto se clasifica
 automáticamente por presupuesto, urgencia y sector, y crea la oportunidad
 directamente en el CRM con etiquetas y prioridad asignadas por IA.
 
-**Demo en vivo:** `docs/index.html` — desplegado en GitHub Pages, permite
+**Demo en vivo:** [docs/index.html](https://ggarcilazo.github.io/leadscoring-crm/) - desplegado en GitHub Pages, permite
 probar el flujo completo desde el navegador sin necesidad de Postman/curl.
 
 ---
