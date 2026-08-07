@@ -1,1 +1,135 @@
 
+{
+  "name": "leadscoring-crm-demo",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadscoring-demo-8f2a",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://ggarcilazo.github.io"
+        }
+      },
+      "id": "f2c4dff0-eb1d-4769-8e3d-d0825800e278",
+      "name": "Webhook - Lead Intake",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        0
+      ],
+      "webhookId": "0d3b9c02-825d-45ca-9c56-2c379f9d4fda",
+      "notesInFlow": false,
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: \"llama-3.3-70b-versatile\",\n  messages: [{\n    role: \"user\",\n    content: `Analiza este mensaje de un formulario de contacto B2B y clasifícalo. Responde SOLO con un JSON válido, sin texto adicional, con este formato exacto: {\"presupuesto_estimado\": \"bajo|medio|alto|no_especificado\", \"urgencia\": \"baja|media|alta\", \"sector\": \"string\", \"resumen_ejecutivo\": \"string\"}. Mensaje: ${$json.body.mensaje}. Empresa: ${$json.body.empresa}.`\n  }],\n  response_format: { type: \"json_object\" }\n}) }}",
+        "options": {}
+      },
+      "id": "e3d6581e-9cac-4183-8ac2-8bffcdb75b42",
+      "name": "HTTP Request - Groq",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "x",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.choices[0].message.content;\nconst clasificacion = JSON.parse(raw);\nconst original = $('Webhook - Lead Intake').first().json.body;\n\nreturn [{\n  json: {\n    ...original,\n    ...clasificacion\n  }\n}];"
+      },
+      "id": "x",
+      "name": "Code - Normalizar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        720,
+        0
+      ],
+      "id": "e68f29d7-cccb-4ebb-b94a-dc8d2d7881d2",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Lead Intake": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Groq",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Gemini": {
+      "main": [
+        [
+          {
+            "node": "Code - Normalizar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Normalizar": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "3b3a5115-1f6a-4b6d-a92b-7759d456a029",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8c1e5971361822e8079378606050ac5a17e74c38fc85f7837b70d2f721708df3"
+  },
+  "nodeGroups": [],
+  "id": "eZWYgXJOreVO13Qy",
+  "tags": []
+}
