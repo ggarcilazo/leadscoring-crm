@@ -13,19 +13,9 @@ probar el flujo completo desde el navegador sin necesidad de Postman/curl.
 ## Arquitectura
 
 ```
-┌─────────────────┐      ┌──────────────┐      ┌─────────────────┐
-│  Formulario web   │      │     n8n        │      │   Groq API        │
-│  (docs/index.html)│─POST→│  (webhook)     │─POST→│  Llama 3.3 70B     │
-└─────────────────┘      │  self-hosted   │      │  (clasificación)  │
-                          │  Oracle Cloud  │←──────┘
-                          └───────┬────────┘
-                                  │ POST (JSON clasificado)
-                                  ▼
-                          ┌──────────────┐      ┌─────────────────┐
-                          │  Backend       │─────→│   Odoo CRM         │
-                          │  Python/FastAPI│      │  self-hosted       │
-                          │  (limpieza)    │      │  Oracle Cloud      │
-                          └──────────────┘      └─────────────────┘
+
+<img width="1662" height="946" alt="f4760504-c544-4961-95c9-1a039d3234fd" src="https://github.com/user-attachments/assets/9c3fc983-90cb-443e-ad10-d150b9c31779" />
+
 ```
 
 1. El formulario envía los datos del lead a un **Webhook de n8n**.
